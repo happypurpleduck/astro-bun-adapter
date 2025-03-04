@@ -1,44 +1,21 @@
-# @deno/astro-adapter
+# astro-bun-adapter
 
-This adapter allows Astro to deploy your SSR site to Deno targets.
+This adapter allows Astro to deploy your SSR site to Bun targets.
+(Based on Deno adapter)
 
-Learn how to deploy your Astro site in our
-[Deno Deploy deployment guide](https://docs.astro.build/en/guides/deploy/deno/).
-
-- <strong> [Why Astro Deno](#why-astro-deno)</strong>
-- <strong> [Installation](#installation)</strong>
-- <strong> [Usage](#usage)</strong>
-- <strong> [Configuration](#configuration)</strong>
-- <strong> [Examples](#examples)</strong>
-- <strong> [Contributing](#contributing)</strong>
-
-## Why Astro Deno
-
-If you're using Astro as a static site builder—its behavior out of the box—you
-don't need an adapter.
-
-If you wish to
-[use server-side rendering (SSR)](https://docs.astro.build/en/guides/server-side-rendering/),
-Astro requires an adapter that matches your deployment runtime.
-
-You also need an adapter or server if you wish to deploy your site to
-[Deno Deploy](https://deno.com/deploy).
-
-[Deno](https://deno.com/) is a runtime similar to Node, but with an API that's
-more similar to the browser's API. This adapter provides access to Deno's API
-and creates a script to run your project on a Deno server.
+- **[Installation](#installation)**
+- **[Usage](#usage)**
+- **[Configuration](#configuration)**
 
 ## Installation
 
-Add the Deno adapter to enable SSR in your Astro project with the following
+Add the Bun adapter to enable SSR in your Astro project with the following
 steps:
 
-1. Install the Deno adapter to your project’s dependencies using your preferred
-   package manager. If you’re using npm or aren’t sure, run this in the
-   terminal:
+1. Install the Bun adapter to your project’s dependencies.
 
    ```bash
-   npm install @deno/astro-adapter
+   bun install @purpleduck/astro-bun-adapter
    ```
 
 1. Update your `astro.config.mjs` project configuration file with the changes
@@ -47,15 +24,15 @@ steps:
    ```js ins={3,6-7}
    // astro.config.mjs
    import { defineConfig } from "astro/config";
-   import deno from "@deno/astro-adapter";
+   import bun from "@purpleduck/astro-bun-adapter";
 
    export default defineConfig({
      output: "server",
-     adapter: deno(),
+     adapter: bun(),
    });
    ```
 
-Next, update your `preview` script in `package.json` to run `deno`:
+Next, update your `preview` script in `package.json` to run `bun`:
 
 ```json ins={8}
 // package.json
@@ -65,13 +42,13 @@ Next, update your `preview` script in `package.json` to run `deno`:
     "dev": "astro dev",
     "start": "astro dev",
     "build": "astro build",
-    "preview": "deno run --allow-net --allow-read --allow-env ./dist/server/entry.mjs"
+    "preview": "bun run ./dist/server/entry.mjs"
   }
 }
 ```
 
 You can now use this command to preview your production Astro site locally with
-Deno.
+Bun.
 
 ```bash
 npm run preview
@@ -82,7 +59,7 @@ npm run preview
 After
 [performing a build](https://docs.astro.build/en/guides/deploy/#building-your-site-locally)
 there will be a `dist/server/entry.mjs` module. You can start a server by
-importing this module in your Deno app:
+importing this module in your Bun app:
 
 ```js
 import "./dist/server/entry.mjs";
@@ -91,25 +68,25 @@ import "./dist/server/entry.mjs";
 See the `start` option below for how you can have more control over starting the
 Astro server.
 
-You can also run the script directly using deno:
+You can also run the script directly using Bun:
 
 ```sh
-deno run --allow-net --allow-read --allow-env ./dist/server/entry.mjs
+bun run ./dist/server/entry.mjs
 ```
 
 ## Configuration
 
-To configure this adapter, pass an object to the `deno()` function call in
+To configure this adapter, pass an object to the `bun()` function call in
 `astro.config.mjs`.
 
 ```js
 // astro.config.mjs
 import { defineConfig } from "astro/config";
-import deno from "@deno/astro-adapter";
+import bun from "@purpleduck/astro-bun-adapter";
 
 export default defineConfig({
   output: "server",
-  adapter: deno({
+  adapter: bun({
     //options go here
   }),
 });
@@ -122,42 +99,40 @@ this off with the `start` option:
 
 ```js
 import { defineConfig } from "astro/config";
-import deno from "@deno/astro-adapter";
+import bun from "@purpleduck/astro-bun-adapter";
 
 export default defineConfig({
   output: "server",
-  adapter: deno({
+  adapter: bun({
     start: false,
   }),
 });
 ```
 
-If you disable this, you need to write your own Deno web server. Import and call
+If you disable this, you need to write your own Bun web server. Import and call
 `handle` from the generated entry script to render requests:
 
 ```ts
 import { handle } from "./dist/server/entry.mjs";
 
-Deno.serve((req: Request) => {
-  // Check the request, maybe do static file handling here.
-
-  return handle(req);
+Bun.serve({
+  fetch: handle,
 });
 ```
 
 ### port and hostname
 
-You can set the port (default: `8085`) and hostname (default: `0.0.0.0`) for the
-deno server to use. If `start` is false, this has no effect; your own server
+You can set the port (default: `3000`) and hostname (default: `0.0.0.0`) for the
+bun server to use. If `start` is false, this has no effect; your own server
 must configure the port and hostname.
 
 ```js
 import { defineConfig } from "astro/config";
-import deno from "@deno/astro-adapter";
+import bun from "@purpleduck/astro-bun-adapter";
 
 export default defineConfig({
   output: "server",
-  adapter: deno({
+  adapter: bun({
     port: 8081,
     hostname: "myhost",
   }),
@@ -173,45 +148,14 @@ information.
 
 ```js
 import { defineConfig } from "astro/config";
-import deno from "@deno/astro-adapter";
+import bun from "@purpleduck/astro-bun-adapter";
 
 export default defineConfig({
   output: "server",
-  adapter: deno({
+  adapter: bun({
     esbuild: {
       // options go here
     },
   }),
 });
 ```
-
-## Examples
-
-The [Astro Deno](https://github.com/withastro/astro/tree/main/examples/deno)
-example includes a `preview` command that runs the entry script directly. Run
-`npm run build` then `npm run preview` to run the production deno server.
-
-## Contributing
-
-To configure your development environment, clone the repository and install
-[`pnpm`](https://pnpm.io/). `pnpm` is a package manager that emphasizes disk
-space efficiency and is used for managing the dependencies of this project. Once
-installed, run `pnpm i` to install the dependencies.
-
-```sh
-git clone
-cd astro-adapter
-pnpm i
-```
-
-The Deno Astro Adapter is currently built and tested with Deno 2.x. To test your
-changes make sure you have Deno 2.x installed
-
-```sh
-pnpm run test
-```
-
-Finally, you can check your code formatting with: `pnpm run fmt`.
-
-This package is maintained by Deno's Core team. You're welcome to submit an
-issue or PR!

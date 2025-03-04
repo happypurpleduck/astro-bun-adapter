@@ -1,214 +1,131 @@
+import { rm } from "node:fs/promises";
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { AstroAdapter, AstroIntegration } from "astro";
 import esbuild from "esbuild";
-import * as fs from "node:fs";
-import * as npath from "node:path";
-import { fileURLToPath } from "node:url";
-import type { BuildConfig, Options } from "./types";
-import { mergeObjects } from "./helpers";
-
-const SHIM = `globalThis.process = {
-	argv: [],
-	env: Deno.env.toObject(),
-};`;
-
-const STD_VERSION = `1.0`;
-// REF: https://github.com/denoland/deno/tree/main/ext/node/polyfills
-const COMPATIBLE_NODE_MODULES = [
-  "assert",
-  "assert/strict",
-  "async_hooks",
-  "buffer",
-  "child_process",
-  "cluster",
-  "console",
-  "constants",
-  "crypto",
-  "dgram",
-  "diagnostics_channel",
-  "dns",
-  "events",
-  "fs",
-  "fs/promises",
-  "http",
-  // 'http2',
-  "https",
-  "inspector",
-  "module",
-  "net",
-  "os",
-  "path",
-  "path/posix",
-  "path/win32",
-  "perf_hooks",
-  "process",
-  "punycode",
-  "querystring",
-  "readline",
-  "repl",
-  "stream",
-  "stream/promises",
-  "stream/web",
-  "string_decoder",
-  "sys",
-  "timers",
-  "timers/promises",
-  // 'tls',
-  "trace_events",
-  "tty",
-  "url",
-  "util",
-  "util/types",
-  // 'v8',
-  // 'vm',
-  // 'wasi',
-  // 'webcrypto',
-  "worker_threads",
-  "zlib",
-];
-
-// We shim deno-specific imports so we can run the code in Node
-// to prerender pages. In the final Deno build, this import is
-// replaced with the Deno-specific contents listed below.
-const DENO_IMPORTS_SHIM = `@deno/astro-adapter/__deno_imports.ts`;
-const DENO_IMPORTS =
-  `export { serveFile } from "jsr:@std/http@${STD_VERSION}/file-server";
-export { fromFileUrl } from "jsr:@std/path@${STD_VERSION}";`;
+import type { OutputOptions } from "rollup";
+import type { InlineConfig } from "vite";
+import { mergeObjects } from "./helpers.ts";
+import type { BuildConfig, Options } from "./types.ts";
 
 export function getAdapter(args?: Options): AstroAdapter {
-  return {
-    name: "@deno/astro-adapter",
-    serverEntrypoint: "@deno/astro-adapter/server.ts",
-    args: args ?? {},
-    exports: ["stop", "handle", "start", "running"],
-    supportedAstroFeatures: {
-      hybridOutput: "stable",
-      staticOutput: "stable",
-      serverOutput: "stable",
-      assets: {
-        supportKind: "stable",
-        isSharpCompatible: false,
-        isSquooshCompatible: false,
-      },
-    },
-  };
+	return {
+		name: "astro-bun-adapter",
+		serverEntrypoint: "astro-bun-adapter/server.ts",
+		args: args ?? {},
+		exports: ["stop", "handle", "start", "running"],
+		supportedAstroFeatures: {
+			hybridOutput: "stable",
+			// TODO: test
+			i18nDomains: "stable",
+			staticOutput: "stable",
+			serverOutput: "stable",
+			// TODO: test
+			sharpImageService: "stable",
+			// TODO: ?
+			envGetSecret: "unsupported",
+		},
+	};
 }
 
-const denoImportsShimPlugin = {
-  name: "@deno/astro-adapter:shim",
-  setup(build: esbuild.PluginBuild) {
-    build.onLoad({ filter: /__deno_imports\.ts$/ }, async () => {
-      return {
-        contents: DENO_IMPORTS,
-        loader: "ts",
-      };
-    });
-    build.onResolve({ filter: /^jsr:@std/ }, (args) => {
-      return { path: args.path, external: true };
-    });
-  },
-};
-
-const denoRenameNodeModulesPlugin = {
-  name: "@astrojs/esbuild-rename-node-modules",
-  setup(build: esbuild.PluginBuild) {
-    const filter = new RegExp(
-      COMPATIBLE_NODE_MODULES.map((mod) => `(^${mod}$)`).join("|"),
-    );
-    build.onResolve({ filter }, (args) => ({
-      path: "node:" + args.path,
-      external: true,
-    }));
-  },
-};
-
 export default function createIntegration(args?: Options): AstroIntegration {
-  let _buildConfig: BuildConfig;
-  let _vite: any;
-  return {
-    name: "@deno/astro-adapter",
-    hooks: {
-      "astro:config:done": ({ setAdapter, config }) => {
-        setAdapter(getAdapter(args));
-        _buildConfig = config.build;
-      },
-      "astro:build:setup": ({ vite, target }) => {
-        if (target === "server") {
-          _vite = vite;
-          vite.resolve = vite.resolve ?? {};
-          vite.resolve.alias = vite.resolve.alias ?? {};
-          vite.build = vite.build ?? {};
-          vite.build.rollupOptions = vite.build.rollupOptions ?? {};
-          vite.build.rollupOptions.external =
-            vite.build.rollupOptions.external ?? [];
+	let _buildConfig: BuildConfig;
+	let _vite: InlineConfig;
 
-          const aliases = [
-            {
-              find: "react-dom/server",
-              replacement: "react-dom/server.browser",
-            },
-          ];
+	return {
+		name: "astro-bun-adapter",
+		hooks: {
+			"astro:config:done": ({ setAdapter, config }) => {
+				setAdapter(getAdapter(args));
+				_buildConfig = config.build;
+			},
+			"astro:build:setup": ({ vite, target }) => {
+				if (target === "server") {
+					_vite = vite;
+					vite.resolve = vite.resolve ?? {};
+					vite.resolve.alias = vite.resolve.alias ?? {};
+					vite.build = vite.build ?? {};
+					vite.build.rollupOptions = vite.build.rollupOptions ?? {};
+					vite.build.rollupOptions.external =
+						vite.build.rollupOptions.external ?? [];
 
-          if (Array.isArray(vite.resolve.alias)) {
-            vite.resolve.alias = [...vite.resolve.alias, ...aliases];
-          } else {
-            for (const alias of aliases) {
-              (vite.resolve.alias as Record<string, string>)[alias.find] =
-                alias.replacement;
-            }
-          }
+					const aliases = [
+						{
+							find: "react-dom/server",
+							replacement: "react-dom/server.browser",
+						},
+					];
 
-          if (Array.isArray(vite.build.rollupOptions.external)) {
-            vite.build.rollupOptions.external.push(DENO_IMPORTS_SHIM);
-          } else if (typeof vite.build.rollupOptions.external !== "function") {
-            vite.build.rollupOptions.external = [
-              vite.build.rollupOptions.external,
-              DENO_IMPORTS_SHIM,
-            ];
-          }
-        }
-      },
-      "astro:build:done": async () => {
-        const entryUrl = new URL(_buildConfig.serverEntry, _buildConfig.server);
-        const pth = fileURLToPath(entryUrl);
+					if (Array.isArray(vite.resolve.alias)) {
+						vite.resolve.alias = [...vite.resolve.alias, ...aliases];
+					} else {
+						for (const alias of aliases) {
+							(vite.resolve.alias as Record<string, string>)[alias.find] =
+								alias.replacement;
+						}
+					}
 
-        const esbuildConfig = mergeObjects<esbuild.BuildOptions>(
-          {
-            target: "esnext",
-            platform: "browser",
-            entryPoints: [pth],
-            outfile: pth,
-            allowOverwrite: true,
-            format: "esm",
-            bundle: true,
-            external: [
-              ...COMPATIBLE_NODE_MODULES.map((mod) => `node:${mod}`),
-              "@astrojs/markdown-remark",
-            ],
-            plugins: [denoImportsShimPlugin, denoRenameNodeModulesPlugin],
-            banner: {
-              js: SHIM,
-            },
-            logOverride: {
-              "ignored-bare-import": "silent",
-            },
-          },
-          args?.esbuild || {},
-        );
-        await esbuild.build(esbuildConfig);
+					if (Array.isArray(vite.build.rollupOptions.external)) {
+					} else if (typeof vite.build.rollupOptions.external !== "function") {
+						vite.build.rollupOptions.external = [
+							vite.build.rollupOptions.external,
+						];
+					}
+				}
+			},
+			"astro:build:done": async () => {
+				const entryUrl = new URL(_buildConfig.serverEntry, _buildConfig.server);
+				const pth = fileURLToPath(entryUrl);
 
-        // Remove chunks, if they exist. Since we have bundled via esbuild these chunks are trash.
-        try {
-          const chunkFileNames =
-            _vite?.build?.rollupOptions?.output?.chunkFileNames ??
-              `chunks/chunk.[hash].mjs`;
-          const chunkPath = npath.dirname(chunkFileNames);
-          const chunksDirUrl = new URL(chunkPath + "/", _buildConfig.server);
-          await fs.promises.rm(chunksDirUrl, {
-            recursive: true,
-            force: true,
-          });
-        } catch {}
-      },
-    },
-  };
+				const esbuildConfig = mergeObjects<esbuild.BuildOptions>(
+					{
+						target: "esnext",
+						platform: "node",
+						entryPoints: [pth],
+						outfile: pth,
+						allowOverwrite: true,
+						format: "esm",
+						bundle: true,
+						external: [
+							// ...COMPATIBLE_NODE_MODULES.map((mod) => `node:${mod}`),
+							"@astrojs/markdown-remark",
+						],
+						logOverride: {
+							"ignored-bare-import": "silent",
+						},
+					},
+					args?.esbuild || {},
+				);
+
+				await esbuild.build(esbuildConfig);
+
+				// Remove chunks, if they exist. Since we have bundled via esbuild these chunks are trash.
+				try {
+					if (Array.isArray(_vite?.build?.rollupOptions?.output)) {
+						for (const output of _vite.build.rollupOptions.output) {
+							await delete_chunk(output, _buildConfig.server);
+						}
+					} else if (_vite?.build?.rollupOptions?.output) {
+						await delete_chunk(
+							_vite.build.rollupOptions.output,
+							_buildConfig.server,
+						);
+					}
+				} catch {}
+			},
+		},
+	};
+}
+
+async function delete_chunk(output: OutputOptions, server_url: URL) {
+	const chunkFileNames =
+		typeof output.chunkFileNames === "string"
+			? output.chunkFileNames
+			: "chunks/chunk.[hash].mjs";
+	const chunkPath = dirname(chunkFileNames);
+	const chunksDirUrl = new URL(`${chunkPath}/`, server_url);
+	await rm(chunksDirUrl, {
+		recursive: true,
+		force: true,
+	});
 }
