@@ -3,10 +3,12 @@ import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import esbuild from "esbuild";
 import { mergeObjects } from "./helpers.js";
+// import packageJson from "../package.json" with { type: "json" };
 export function getAdapter(args) {
     return {
         name: "astro-bun-adapter",
-        serverEntrypoint: "astro-bun-adapter/server.ts",
+        // serverEntrypoint: `${packageJson.name}/server`,
+        serverEntrypoint: "@purpleduck/astro-bun-adapter/server",
         args: args ?? {},
         exports: ["stop", "handle", "start", "running"],
         supportedAstroFeatures: {

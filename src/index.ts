@@ -7,11 +7,13 @@ import type { OutputOptions } from "rollup";
 import type { InlineConfig } from "vite";
 import { mergeObjects } from "./helpers.ts";
 import type { BuildConfig, Options } from "./types.ts";
+// import packageJson from "../package.json" with { type: "json" };
 
 export function getAdapter(args?: Options): AstroAdapter {
 	return {
 		name: "astro-bun-adapter",
-		serverEntrypoint: "astro-bun-adapter/server.ts",
+		// serverEntrypoint: `${packageJson.name}/server`,
+		serverEntrypoint: "@purpleduck/astro-bun-adapter/server",
 		args: args ?? {},
 		exports: ["stop", "handle", "start", "running"],
 		supportedAstroFeatures: {
