@@ -14,24 +14,25 @@
 	"homepage": "https://github.com/happypurpleduck/astro-bun-adapter",
 	"files": ["src"],
 	"exports": {
-		".": "./src/index.ts",
-		"./server.ts": "./src/server.ts",
+		".": "./dist/index.js",
+		"./server.ts": "./dist/server.js",
 		"./package.json": "./package.json"
 	},
 	"scripts": {
+		"build": "tsc",
 		"test": "exit 1"
 	},
 	"dependencies": {
-		"es-toolkit": "^1.32.0",
-		"esbuild": "^0.25.0"
+		"es-toolkit": "^1.33.0",
+		"esbuild": "^0.25.1"
 	},
 	"peerDependencies": {
-		"astro": "^5.0.1"
+		"astro": "^5.0.0"
 	},
 	"devDependencies": {
-		"@types/bun": "^1.2.0",
-		"astro": "^5.0.1",
-		"rollup": "^4.34.9",
+		"@types/bun": "^1.2.5",
+		"astro": "^5.4.2",
+		"rollup": "^4.36.0",
 		"typescript": "^5.8.2"
 	}
 }

@@ -103,10 +103,15 @@ export default function createIntegration(args?: Options): AstroIntegration {
 				try {
 					if (Array.isArray(_vite?.build?.rollupOptions?.output)) {
 						for (const output of _vite.build.rollupOptions.output) {
-							await delete_chunk(output, _buildConfig.server);
+							await delete_chunk(
+								// @ts-expect-error
+								output,
+								_buildConfig.server,
+							);
 						}
 					} else if (_vite?.build?.rollupOptions?.output) {
 						await delete_chunk(
+							// @ts-expect-error
 							_vite.build.rollupOptions.output,
 							_buildConfig.server,
 						);

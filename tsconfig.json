@@ -2,7 +2,6 @@
 	"$schema": "https://json.schemastore.org/tsconfig",
 	"compilerOptions": {
 		"declaration": true,
-		"emitDeclarationOnly": true,
 		"strict": true,
 		"target": "ES2022",
 		"moduleResolution": "nodenext",
@@ -13,7 +12,8 @@
 		"moduleDetection": "force",
 		"verbatimModuleSyntax": true,
 		"isolatedModules": true,
-		"allowImportingTsExtensions": true
+		"allowImportingTsExtensions": true,
+		"rewriteRelativeImportExtensions": true
 	},
 	"include": ["src"]
 }
